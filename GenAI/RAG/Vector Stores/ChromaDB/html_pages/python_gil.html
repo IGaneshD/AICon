@@ -1,0 +1,2478 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <link href="https://files.realpython.com" rel="preconnect"/>
+  <title>
+   What Is the Python Global Interpreter Lock (GIL)? – Real Python
+  </title>
+  <meta content="Real Python" name="author"/>
+  <meta content="Python's Global Interpreter Lock or GIL, in simple words, is a mutex (or a lock) that allows only one thread to hold the control of the Python interpreter at any one time. In this article you'll learn how the GIL affects the performance of your Python programs." name="description"/>
+  <meta content="" name="keywords"/>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" name="viewport"/>
+  <link href="/static/realpython.min.dfc4eee500d7.css" rel="stylesheet"/>
+  <link href="/static/gfonts/font.5ac42994de49.css" rel="stylesheet"/>
+  <link as="style" href="/static/glightbox.min.9b438b29cef1.css" onload="this.onload=null;this.rel='stylesheet'" rel="preload"/>
+  <noscript>
+   <link href="/static/glightbox.min.9b438b29cef1.css" rel="stylesheet"/>
+  </noscript>
+  <link as="image" href="https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg" imagesizes="(min-width: 1200px) 690px, (min-width: 780px) calc(-5vw + 669px), (min-width: 580px) 510px, calc(100vw - 30px)" imagesrcset="/cdn-cgi/image/width=480,format=auto/https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg 480w, /cdn-cgi/image/width=640,format=auto/https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg 640w, /cdn-cgi/image/width=960,format=auto/https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg 960w, /cdn-cgi/image/width=1920,format=auto/https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg 1920w" rel="preload"/>
+  <link href="https://realpython.com/python-gil/" rel="canonical"/>
+  <meta content="summary_large_image" name="twitter:card"/>
+  <meta content="https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg" name="twitter:image"/>
+  <meta content="https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg" property="og:image"/>
+  <meta content="max-image-preview:large" name="robots"/>
+  <meta content="@realpython" name="twitter:creator"/>
+  <meta content="@realpython" name="twitter:site"/>
+  <meta content="What Is the Python Global Interpreter Lock (GIL)? – Real Python" property="og:title"/>
+  <meta content="article" property="og:type"/>
+  <meta content="https://realpython.com/python-gil/" property="og:url"/>
+  <meta content="Python's Global Interpreter Lock or GIL, in simple words, is a mutex (or a lock) that allows only one thread to hold the control of the Python interpreter at any one time. In this article you'll learn how the GIL affects the performance of your Python programs." property="og:description"/>
+  <link href="/static/favicon.68cbf4197b0c.png" rel="icon"/>
+  <link href="https://realpython.com/atom.xml" rel="alternate" title="Real Python" type="application/atom+xml"/>
+  <link href="/manifest.json" rel="manifest"/>
+  <script id="icons-data" type="application/json">
+   {"iconsUrl": "/static/icons.1fb5b1968c3f.svg"}
+  </script>
+  <script id="optins-data" type="application/json">
+   {"turnstileSiteKey": "0x4AAAAAAAQQUCLRXBi8NnUh"}
+  </script>
+  <script async="" src="https://www.googletagmanager.com/gtag/js?id=G-L7L6L5F6Y6">
+  </script>
+  <script>
+   window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-L7L6L5F6Y6',{'content_group': 'article'});
+
+  gtag('get', 'G-L7L6L5F6Y6', 'client_id', (clid) => {
+    document.cookie = 'gaclid=' + clid + ';max-age=86400000;path=/;secure';
+  });
+  </script>
+ </head>
+ <body data-authenticated="false">
+  <nav class="navbar fixed-top navbar-expand-lg navbar-dark flex-column user-select-none">
+   <div class="container flex-row">
+    <a class="navbar-brand" href="/">
+     <img alt="Real Python" class="d-inline-block align-top" height="40" src="/static/real-python-logo.893c30edea53.svg" width="165"/>
+    </a>
+    <button aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler" data-target="#navbarSupportedContent" data-toggle="collapse" type="button">
+     <span class="navbar-toggler-icon">
+     </span>
+    </button>
+    <div aria-label="Main Navigation" class="collapse navbar-collapse navbar-nav-scroll" id="navbarSupportedContent" role="navigation">
+     <ul class="navbar-nav mr-2">
+      <li class="nav-item">
+       <a class="nav-link rounded" href="/start-here/">
+        Start Here
+       </a>
+      </li>
+      <li class="nav-item dropdown">
+       <a aria-expanded="false" aria-haspopup="true" class="nav-link rounded dropdown-toggle" data-toggle="dropdown" href="#" id="navbarDropdownLibrary" role="button">
+        <span aria-hidden="true" class="icon baseline">
+         <svg aria-hidden="true">
+          <use href="/static/icons.1fb5b1968c3f.svg#brands--python">
+          </use>
+         </svg>
+        </span>
+        Learn Python
+       </a>
+       <div aria-labelledby="navbarDropdownLibrary" class="dropdown-menu">
+        <a class="dropdown-item" href="/search?kind=article&amp;kind=course&amp;order=newest" style="color: #ff7e73; line-height: 110%;">
+         <span aria-hidden="true" class="icon baseline mr-1">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#solid--graduation-cap">
+           </use>
+          </svg>
+         </span>
+         Python Tutorials →
+         <br/>
+         <small class="text-secondary">
+          In-depth articles and video courses
+         </small>
+        </a>
+        <a class="dropdown-item" href="/learning-paths/" style="color: #ffc873; line-height: 110%;">
+         <span aria-hidden="true" class="icon baseline mr-1">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#@learning-path">
+           </use>
+          </svg>
+         </span>
+         Learning Paths →
+         <br/>
+         <small class="text-secondary">
+          Guided study plans for accelerated learning
+         </small>
+        </a>
+        <a class="dropdown-item" href="/quizzes/" style="color: #abe0e5; line-height: 110%;">
+         <span aria-hidden="true" class="icon baseline mr-1">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#@quiz">
+           </use>
+          </svg>
+         </span>
+         Quizzes &amp; Exercises →
+         <br/>
+         <small class="text-secondary">
+          Check your learning progress
+         </small>
+        </a>
+        <a class="dropdown-item" href="/tutorials/all/" style="color: #ccc; line-height: 110%;">
+         <span aria-hidden="true" class="icon baseline mr-1">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#@category">
+           </use>
+          </svg>
+         </span>
+         Browse Topics →
+         <br/>
+         <small class="text-secondary">
+          Focus on a specific area or skill level
+         </small>
+        </a>
+        <a class="dropdown-item" href="/community/" style="color: #e5c6ab; line-height: 110%;">
+         <span aria-hidden="true" class="icon baseline mr-1">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#solid--message-smile">
+           </use>
+          </svg>
+         </span>
+         Community Chat →
+         <br/>
+         <small class="text-secondary">
+          Learn with other Pythonistas
+         </small>
+        </a>
+        <a class="dropdown-item" href="/office-hours/" style="color: #e5c6ab; line-height: 110%;">
+         <span aria-hidden="true" class="icon baseline mr-1">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#solid--users">
+           </use>
+          </svg>
+         </span>
+         Office Hours →
+         <br/>
+         <small class="text-secondary">
+          Live Q&amp;A calls with Python experts
+         </small>
+        </a>
+        <a class="dropdown-item" href="/live/" style="color: #e5c6ab; line-height: 110%;">
+         <span aria-hidden="true" class="icon baseline mr-1">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#solid--rocket-launch">
+           </use>
+          </svg>
+         </span>
+         Live Courses →
+         <br/>
+         <small class="text-secondary">
+          Live, instructor-led Python courses
+         </small>
+        </a>
+        <a class="dropdown-item" href="/podcasts/rpp/" style="color: #b8abe5; line-height: 110%;">
+         <span aria-hidden="true" class="icon baseline mr-1">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#@podcast">
+           </use>
+          </svg>
+         </span>
+         Podcast →
+         <br/>
+         <small class="text-secondary">
+          Hear what’s new in the world of Python
+         </small>
+        </a>
+        <a class="dropdown-item" href="/products/books/" style="color: #abe5b1; line-height: 110%;">
+         <span aria-hidden="true" class="icon baseline mr-1">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#solid--book-heart">
+           </use>
+          </svg>
+         </span>
+         Books →
+         <br/>
+         <small class="text-secondary">
+          Round out your knowledge and learn offline
+         </small>
+        </a>
+        <a class="dropdown-item" href="/ref/" style="color: #abe0e5; line-height: 110%;">
+         <span aria-hidden="true" class="icon baseline mr-1">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#@reference">
+           </use>
+          </svg>
+         </span>
+         Reference →
+         <br/>
+         <small class="text-secondary">
+          Concise definitions for common Python terms
+         </small>
+        </a>
+        <a class="dropdown-item" href="/mentor/" style="color: #ffc873; line-height: 110%;">
+         <span aria-hidden="true" class="icon baseline mr-1">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#@code-mentor">
+           </use>
+          </svg>
+         </span>
+         Code Mentor →
+         <span class="float-right badge badge-pill badge-indigo">
+          Beta
+         </span>
+         <br/>
+         <small class="text-secondary">
+          Personalized code assistance &amp; learning tools
+         </small>
+        </a>
+        <a class="dropdown-item border-top" href="/account/join/" style="color: #ffc107; line-height: 110%;">
+         <span aria-hidden="true" class="icon baseline mr-1">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#solid--star">
+           </use>
+          </svg>
+         </span>
+         Unlock All Content →
+        </a>
+       </div>
+      </li>
+      <li class="nav-item dropdown">
+       <a aria-expanded="false" aria-haspopup="true" class="nav-link rounded dropdown-toggle" data-toggle="dropdown" href="#" id="navbarDropdownMore" role="button">
+        More
+       </a>
+       <div aria-labelledby="navbarDropdownMore" class="dropdown-menu">
+        <a class="dropdown-item" href="/learner-stories/">
+         Learner Stories
+        </a>
+        <a class="dropdown-item" href="/newsletter/">
+         Python Newsletter
+        </a>
+        <a class="dropdown-item" href="https://www.pythonjobshq.com" target="_blank">
+         Python Job Board
+        </a>
+        <a class="dropdown-item" href="/team/">
+         Meet the Team
+        </a>
+        <a class="dropdown-item" href="/jobs/">
+         Become a Contributor
+        </a>
+       </div>
+      </li>
+     </ul>
+     <div class="d-block d-lg-none">
+      <ul class="navbar-nav">
+       <li class="nav-item">
+        <a class="nav-link rounded" href="/search" title="Search">
+         <span aria-hidden="true" class="icon baseline">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#v4--search">
+           </use>
+          </svg>
+         </span>
+         Search
+        </a>
+       </li>
+      </ul>
+     </div>
+     <div class="d-none d-lg-flex align-items-center mr-2 flex-fill">
+      <form action="/search" class="form-inline w-100 position-relative" method="get">
+       <a aria-hidden="true" class="js-search-form-submit position-absolute" href="/search" tabindex="-1" title="Search">
+        <span aria-hidden="true" class="icon baseline text-muted pl-2">
+         <svg aria-hidden="true">
+          <use href="/static/icons.1fb5b1968c3f.svg#v4--search">
+          </use>
+         </svg>
+        </span>
+       </a>
+       <input aria-keyshortcuts="/ Control+J Meta+J" aria-label="Search" autocomplete="off" class="search-autocomplete search-field form-control form-control-md mr-sm-1 mr-lg-2 w-100" maxlength="50" name="q" placeholder="Search" style="padding-left: 2rem;" type="search"/>
+       <span aria-hidden="true" class="search-hotkey-indicator position-absolute px-2 border border-input text-input rounded small user-select-none" style="right: 1em;" title="Press / (forward slash) or Ctrl+J to open search">
+        /
+       </span>
+       <input name="_from" type="hidden" value="nav"/>
+      </form>
+     </div>
+     <ul class="navbar-nav ml-auto">
+      <li class="nav-item form-inline mr-2 my-2 ml-3 ml-lg-0">
+       <a class="btn btn-primary px-5 px-lg-3" href="/account/join/">
+        Join
+       </a>
+      </li>
+      <li class="nav-item">
+       <a class="nav-link rounded mx-0 px-lg-2" href="/account/login/?next=%2Fpython-gil%2F">
+        Sign‑In
+       </a>
+      </li>
+     </ul>
+    </div>
+   </div>
+  </nav>
+  <main class="container main-content">
+   <div class="row justify-content-center">
+    <aside class="col-md-7 col-lg-4 order-2 d-none d-lg-block">
+     <div class="card mb-3 bg-secondary">
+      <form action="/optins/process/" class="card-body" method="post">
+       <div class="form-group">
+        <p class="h5 text-muted text-center">
+         — FREE Email Series —
+        </p>
+        <p class="h3 text-center">
+         🐍 Python Tricks 💌
+        </p>
+        <p>
+         <img alt="Python Tricks Dictionary Merge" class="img-fluid rounded" height="490" loading="lazy" src="/static/pytrick-dict-merge.4201a0125a5e.png" width="738"/>
+        </p>
+       </div>
+       <div class="form-group">
+        <input name="csrfmiddlewaretoken" type="hidden" value="6WxKrwlVBjvYOJnldvU3ibP4jcedtiYR1CoogtLvFk7PkO4hCrzzocVdPKM1PjDT"/>
+        <input name="slug" type="hidden" value="static-python-tricks-sidebar"/>
+        <input name="source_path" type="hidden" value="/python-gil/"/>
+        <input class="form-control form-control-md" name="email" placeholder="Email…" required="" type="email"/>
+       </div>
+       <button class="btn btn-primary btn-md btn-block" name="submit" type="submit">
+        Get Python Tricks »
+       </button>
+       <p class="mb-0 mt-2 text-muted text-center">
+        🔒 No spam. Unsubscribe any time.
+       </p>
+      </form>
+     </div>
+     <div class="sidebar-module sidebar-module-inset border">
+      <a class="badge badge-light text-muted" href="/tutorials/all/">
+       <span aria-hidden="true" class="icon baseline mr-1">
+        <svg aria-hidden="true">
+         <use href="/static/icons.1fb5b1968c3f.svg#@category">
+         </use>
+        </svg>
+       </span>
+       Browse Topics
+      </a>
+      <a class="badge badge-light text-muted" href="/learning-paths/">
+       <span aria-hidden="true" class="icon baseline mr-1">
+        <svg aria-hidden="true">
+         <use href="/static/icons.1fb5b1968c3f.svg#solid--map-location-dot">
+         </use>
+        </svg>
+       </span>
+       Guided Learning Paths
+      </a>
+      <br/>
+      <a class="badge badge-light text-muted" href="/search?level=basics">
+       <span aria-hidden="true" class="icon baseline">
+        <svg aria-hidden="true">
+         <use href="/static/icons.1fb5b1968c3f.svg#@level">
+         </use>
+        </svg>
+       </span>
+       Basics
+      </a>
+      <a class="badge badge-light text-muted" href="/search?level=intermediate">
+       <span aria-hidden="true" class="icon baseline">
+        <svg aria-hidden="true">
+         <use href="/static/icons.1fb5b1968c3f.svg#@level">
+         </use>
+        </svg>
+       </span>
+       <span aria-hidden="true" class="icon baseline tight-left">
+        <svg aria-hidden="true">
+         <use href="/static/icons.1fb5b1968c3f.svg#@level">
+         </use>
+        </svg>
+       </span>
+       Intermediate
+      </a>
+      <a class="badge badge-light text-muted" href="/search?level=advanced">
+       <span aria-hidden="true" class="icon baseline">
+        <svg aria-hidden="true">
+         <use href="/static/icons.1fb5b1968c3f.svg#@level">
+         </use>
+        </svg>
+       </span>
+       <span aria-hidden="true" class="icon baseline tight-left">
+        <svg aria-hidden="true">
+         <use href="/static/icons.1fb5b1968c3f.svg#@level">
+         </use>
+        </svg>
+       </span>
+       <span aria-hidden="true" class="icon baseline tight-left">
+        <svg aria-hidden="true">
+         <use href="/static/icons.1fb5b1968c3f.svg#@level">
+         </use>
+        </svg>
+       </span>
+       Advanced
+      </a>
+      <hr class="my-2"/>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/ai/">
+       ai
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/algorithms/">
+       algorithms
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/api/">
+       api
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/best-practices/">
+       best-practices
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/career/">
+       career
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/community/">
+       community
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/databases/">
+       databases
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/data-science/">
+       data-science
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/data-structures/">
+       data-structures
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/data-viz/">
+       data-viz
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/devops/">
+       devops
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/django/">
+       django
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/docker/">
+       docker
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/editors/">
+       editors
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/flask/">
+       flask
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/front-end/">
+       front-end
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/gamedev/">
+       gamedev
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/gui/">
+       gui
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/machine-learning/">
+       machine-learning
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/news/">
+       news
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/numpy/">
+       numpy
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/projects/">
+       projects
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/python/">
+       python
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/stdlib/">
+       stdlib
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/testing/">
+       testing
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/tools/">
+       tools
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/web-dev/">
+       web-dev
+      </a>
+      <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/web-scraping/">
+       web-scraping
+      </a>
+     </div>
+     <div class="sidebar-module sidebar-module-inset p-0" style="overflow:hidden;">
+      <div style="display:block;position:relative;">
+       <div style="display:block;width:100%;padding-top:100%;">
+       </div>
+       <div class="rpad" data-unit="1x1" style="position:absolute;left:0;top:0;right:0;bottom:0;overflow:hidden;">
+       </div>
+      </div>
+     </div>
+     <div class="sidebar-sticky">
+      <table-of-contents>
+       <div class="bg-light sidebar-module sidebar-module-inset text-wrap-pretty">
+        <p class="h4 text-muted">
+         <a class="link-unstyled" href="#toc">
+          Table of Contents
+         </a>
+        </p>
+        <div class="toc">
+         <ul>
+          <li>
+           <a href="#what-problem-did-the-gil-solve-for-python">
+            What Problem Did the GIL Solve for Python?
+           </a>
+          </li>
+          <li>
+           <a href="#why-was-the-gil-chosen-as-the-solution">
+            Why Was the GIL Chosen as the Solution?
+           </a>
+          </li>
+          <li>
+           <a href="#the-impact-on-multi-threaded-python-programs">
+            The Impact on Multi-Threaded Python Programs
+           </a>
+          </li>
+          <li>
+           <a href="#why-hasnt-the-gil-been-removed-yet">
+            Why Hasn’t the GIL Been Removed Yet?
+           </a>
+          </li>
+          <li>
+           <a href="#why-wasnt-it-removed-in-python-3">
+            Why Wasn’t It Removed in Python 3?
+           </a>
+          </li>
+          <li>
+           <a href="#how-to-deal-with-pythons-gil">
+            How to Deal With Python’s GIL
+           </a>
+          </li>
+         </ul>
+        </div>
+       </div>
+      </table-of-contents>
+      <div class="sidebar-module sidebar-module-inset d-flex justify-content-center flex-wrap row-gap-1 col-gap-2 my-3 py-0">
+       <completion-status article-slug="python-gil" class="btn-group mb-0" data-api-article-bookmark-url="/api/v1/articles/python-gil/bookmark/" data-api-article-completion-status-url="/api/v1/articles/python-gil/completion_status/">
+        <button class="btn btn-secondary border-right" data-target-complete-button="" disabled="" style="border-top-right-radius: 0; border-bottom-right-radius: 0;" title="Click to mark as completed">
+         Mark as Completed
+        </button>
+        <button class="btn btn-secondary border-left" data-target-bookmark-button="" disabled="" title="Add bookmark">
+         <span aria-hidden="true" class="icon baseline">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#light--bookmark">
+           </use>
+          </svg>
+         </span>
+        </button>
+       </completion-status>
+       <div class="w-100">
+       </div>
+       <div class="btn-group mb-0">
+        <a aria-label="Liked it (thumbs up)" class="btn btn-secondary border-right" href="/feedback/survey/article/python-gil/liked/?from=article-sidebar" role="button" style="border-top-right-radius: 0; border-bottom-right-radius: 0;" target="_blank" title="Liked it">
+         <span aria-hidden="true" class="icon">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#light--thumbs-up">
+           </use>
+          </svg>
+         </span>
+        </a>
+        <a aria-label="Disliked it (thumbs down)" class="btn btn-secondary border-left" href="/feedback/survey/article/python-gil/disliked/?from=article-sidebar" role="button" target="_blank" title="Disliked it">
+         <span aria-hidden="true" class="icon baseline">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#light--thumbs-down">
+           </use>
+          </svg>
+         </span>
+        </a>
+       </div>
+       <share-button bluesky-text="Interesting #Python article by @realpython.com:" email-body="Check out this Python article:%0A%0AWhat Is the Python Global Interpreter Lock (GIL)?" email-subject="Python article for you" twitter-text="Interesting #Python article by @realpython:" url="https://realpython.com/python-gil/" url-title="What Is the Python Global Interpreter Lock (GIL)?">
+        <button aria-label="Share" class="btn btn-secondary" title="Share" type="button">
+         <span aria-hidden="true" class="icon baseline mr-1">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#@share-light">
+           </use>
+          </svg>
+         </span>
+         Share
+        </button>
+       </share-button>
+      </div>
+      <div class="sidebar-module sidebar-module-inset border card p-0" id="sidebar-courses">
+       <div class="p-2 pb-0">
+        <p class="mb-0">
+         <span class="badge badge-pill badge-success">
+          <span aria-hidden="true" class="icon baseline">
+           <svg aria-hidden="true">
+            <use href="/static/icons.1fb5b1968c3f.svg#v4--play-circle">
+            </use>
+           </svg>
+          </span>
+          Recommended Course
+         </span>
+        </p>
+       </div>
+       <a class="d-block text-decoration-none" data-not-previewable="" href="/courses/understanding-global-interpreter-lock-gil/">
+        <div class="position-relative">
+         <img alt="What is the Python Global Interpreter Lock (GIL)?" class="w-100 sidebar-courses__thumbnail" height="1080" sizes="280px" src="https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg" srcset="/cdn-cgi/image/width=480,format=auto/https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg 480w, /cdn-cgi/image/width=640,format=auto/https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg 640w, /cdn-cgi/image/width=960,format=auto/https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg 960w, /cdn-cgi/image/width=1920,format=auto/https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg 1920w" style="background: #abe5b2;" width="1920"/>
+         <div class="position-absolute sidebar-courses__play-icon">
+          <span aria-hidden="true" class="icon baseline scale2x">
+           <svg aria-hidden="true">
+            <use href="/static/icons.1fb5b1968c3f.svg#@play">
+            </use>
+           </svg>
+          </span>
+         </div>
+        </div>
+        <div class="p-2 pt-1">
+         <p class="text-success mb-0 font-weight-medium sidebar-courses__title">
+          Understanding Python's Global Interpreter Lock (GIL)
+         </p>
+         <p class="text-muted small mb-0">
+          39m · 8 lessons
+         </p>
+        </div>
+       </a>
+      </div>
+      <div class="sidebar-module sidebar-module-inset p-0" style="overflow:hidden;">
+       <div style="display:block;position:relative;">
+        <div style="display:block;width:100%;padding-top:25%;">
+        </div>
+        <div class="rpad" data-unit="4x1" style="position:absolute;left:0;top:0;right:0;bottom:0;overflow:hidden;">
+        </div>
+       </div>
+      </div>
+     </div>
+    </aside>
+    <div class="col-md-11 col-lg-8 article with-headerlinks">
+     <figure class="embed-responsive embed-responsive-16by9 rounded">
+      <img alt="What is the Python Global Interpreter Lock (GIL)?" class="card-img-top m-0 p-0 embed-responsive-item" fetchpriority="high" height="1080" sizes="(min-width: 1200px) 690px, (min-width: 780px) calc(-5vw + 669px), (min-width: 580px) 510px, calc(100vw - 30px)" src="https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg" srcset="/cdn-cgi/image/width=480,format=auto/https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg 480w, /cdn-cgi/image/width=640,format=auto/https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg 640w, /cdn-cgi/image/width=960,format=auto/https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg 960w, /cdn-cgi/image/width=1920,format=auto/https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg 1920w" style="object-fit: contain; background: #abe5b2;" width="1920"/>
+     </figure>
+     <h1>
+      What Is the Python Global Interpreter Lock (GIL)?
+     </h1>
+     <div class="mb-0">
+      <span class="text-muted">
+       by
+       <a class="text-muted" href="#author">
+        Abhinav Ajitsaria
+       </a>
+       <span class="icon baseline ml-2">
+        <svg role="img">
+         <use href="/static/icons.1fb5b1968c3f.svg#regular--book-open">
+         </use>
+        </svg>
+        <span class="sr-only">
+         Reading time estimate
+        </span>
+       </span>
+       11m
+       <span aria-hidden="true" class="icon baseline ml-2 mr-1">
+        <svg aria-hidden="true">
+         <use href="/static/icons.1fb5b1968c3f.svg#solid--comments">
+         </use>
+        </svg>
+       </span>
+       <a class="text-muted" href="#reader-comments">
+        <span class="disqus-comment-count" data-disqus-identifier="https://realpython.com/python-gil/">
+        </span>
+       </a>
+       <span class="d-inline d-md-block">
+        <span aria-hidden="true" class="icon baseline ml-2 ml-md-0">
+         <svg aria-hidden="true">
+          <use href="/static/icons.1fb5b1968c3f.svg#@category">
+          </use>
+         </svg>
+        </span>
+        <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/advanced/">
+         advanced
+        </a>
+        <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/python/">
+         python
+        </a>
+       </span>
+       <div class="d-flex justify-content-between gap-2 my-3">
+        <completion-status article-slug="python-gil" class="btn-group mb-0" data-api-article-bookmark-url="/api/v1/articles/python-gil/bookmark/" data-api-article-completion-status-url="/api/v1/articles/python-gil/completion_status/">
+         <button class="btn btn-secondary border-right" data-target-complete-button="" disabled="" style="border-top-right-radius: 0; border-bottom-right-radius: 0;" title="Click to mark as completed">
+          Mark as Completed
+         </button>
+         <button class="btn btn-secondary border-left" data-target-bookmark-button="" disabled="" title="Add bookmark">
+          <span aria-hidden="true" class="icon baseline">
+           <svg aria-hidden="true">
+            <use href="/static/icons.1fb5b1968c3f.svg#light--bookmark">
+            </use>
+           </svg>
+          </span>
+         </button>
+        </completion-status>
+        <share-button bluesky-text="Interesting #Python article by @realpython.com:" email-body="Check out this Python article:%0A%0AWhat Is the Python Global Interpreter Lock (GIL)?" email-subject="Python article for you" twitter-text="Interesting #Python article by @realpython:" url="https://realpython.com/python-gil/" url-title="What Is the Python Global Interpreter Lock (GIL)?">
+         <button aria-label="Share" class="btn btn-secondary" title="Share" type="button">
+          <span aria-hidden="true" class="icon baseline mr-1">
+           <svg aria-hidden="true">
+            <use href="/static/icons.1fb5b1968c3f.svg#@share-light">
+            </use>
+           </svg>
+          </span>
+          Share
+         </button>
+        </share-button>
+       </div>
+      </span>
+     </div>
+     <div class="article-body">
+      <div class="bg-light sidebar-module sidebar-module-inset" id="toc">
+       <p class="h3 mb-2 text-muted">
+        Table of Contents
+       </p>
+       <div class="toc">
+        <ul>
+         <li>
+          <a href="#what-problem-did-the-gil-solve-for-python">
+           What Problem Did the GIL Solve for Python?
+          </a>
+         </li>
+         <li>
+          <a href="#why-was-the-gil-chosen-as-the-solution">
+           Why Was the GIL Chosen as the Solution?
+          </a>
+         </li>
+         <li>
+          <a href="#the-impact-on-multi-threaded-python-programs">
+           The Impact on Multi-Threaded Python Programs
+          </a>
+         </li>
+         <li>
+          <a href="#why-hasnt-the-gil-been-removed-yet">
+           Why Hasn’t the GIL Been Removed Yet?
+          </a>
+         </li>
+         <li>
+          <a href="#why-wasnt-it-removed-in-python-3">
+           Why Wasn’t It Removed in Python 3?
+          </a>
+         </li>
+         <li>
+          <a href="#how-to-deal-with-pythons-gil">
+           How to Deal With Python’s GIL
+          </a>
+         </li>
+        </ul>
+       </div>
+      </div>
+      <div class="sidebar-module sidebar-module-inset p-0" style="overflow:hidden;">
+       <div style="display:block;position:relative;">
+        <div style="display:block;width:100%;padding-top:12.5%;">
+        </div>
+        <div class="rpad rounded border" data-unit="8x1" style="position:absolute;left:0;top:0;right:0;bottom:0;overflow:hidden;">
+        </div>
+       </div>
+       <a class="small text-muted" href="/account/join/" rel="nofollow">
+        <span aria-hidden="true" class="icon baseline mr-1">
+         <svg aria-hidden="true">
+          <use href="/static/icons.1fb5b1968c3f.svg#solid--circle-info">
+          </use>
+         </svg>
+        </span>
+        Remove ads
+       </a>
+      </div>
+      <div class="sidebar-module sidebar-module-inset border card p-2 mb-3">
+       <p class="mb-2">
+        <span class="badge badge-pill badge-success">
+         <span aria-hidden="true" class="icon baseline">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#v4--play-circle">
+           </use>
+          </svg>
+         </span>
+         Recommended Course
+        </span>
+       </p>
+       <p class="mb-0">
+        <a class="text-success font-weight-medium" data-previewable="" href="/courses/understanding-global-interpreter-lock-gil/">
+         Understanding Python's Global Interpreter Lock (GIL)
+        </a>
+        <span class="text-muted small">
+         (39m)
+        </span>
+       </p>
+      </div>
+      <p>
+       The Python Global Interpreter Lock or
+       <a href="https://wiki.python.org/moin/GlobalInterpreterLock">
+        GIL
+       </a>
+       , in simple words, is a mutex (or a lock) that allows only one
+       <a href="https://realpython.com/intro-to-python-threading/">
+        thread
+       </a>
+       to hold the control of the Python interpreter.
+      </p>
+      <p>
+       This means that only one thread can be in a state of execution at any point in time. The impact of the GIL isn’t visible to developers who execute single-threaded programs, but it can be a performance bottleneck in CPU-bound and multi-threaded code.
+      </p>
+      <p>
+       Since the GIL allows only one thread to execute at a time even in a multi-threaded architecture with more than one CPU core, the GIL has gained a reputation as an “infamous” feature of Python.
+      </p>
+      <p>
+       <strong>
+        In this article you’ll learn how the GIL affects the performance of your Python programs, and how you can mitigate the impact it might have on your code.
+       </strong>
+      </p>
+      <section class="section2">
+       <h2 id="what-problem-did-the-gil-solve-for-python">
+        What Problem Did the GIL Solve for Python?
+        <a class="headerlink" href="#what-problem-did-the-gil-solve-for-python" title="Permanent link">
+        </a>
+       </h2>
+       <p>
+        Python uses reference counting for
+        <a href="https://realpython.com/python-memory-management/">
+         memory management
+        </a>
+        . It means that objects created in Python have a reference count variable that keeps track of the number of references that point to the object. When this count reaches zero, the memory occupied by the object is released.
+       </p>
+       <p>
+        Let’s take a look at a brief code example to demonstrate how reference counting works:
+       </p>
+       <code-block aria-label="Code block" class="mb-3" data-is-repl="true" data-syntax-language="pycon">
+        <div class="codeblock__header codeblock--blue">
+         <span aria-label="Language" class="mr-2 noselect">
+          Python
+         </span>
+         <div class="noselect">
+          <span aria-label="Toggle prompts and output" class="codeblock__output-toggle" role="button" tabindex="0" title="Toggle prompts and output">
+           <span aria-hidden="true" class="icon baseline js-codeblock-output-on codeblock__header--icon-lower">
+            <svg aria-hidden="true">
+             <use href="/static/icons.1fb5b1968c3f.svg#regular--rectangle-terminal">
+             </use>
+            </svg>
+           </span>
+          </span>
+         </div>
+        </div>
+        <div class="codeblock__contents">
+         <div class="highlight highlight--with-header">
+          <pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">a</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sys</span><span class="o">.</span><span class="n">getrefcount</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+<span class="go">3</span>
+</code></pre>
+         </div>
+         <button aria-label="Copy to clipboard" class="codeblock__copy btn btn-outline-secondary border m-1 px-1 d-hover-only" title="Copy to clipboard">
+          <span aria-hidden="true" class="icon baseline">
+           <svg aria-hidden="true">
+            <use href="/static/icons.1fb5b1968c3f.svg#@copy">
+            </use>
+           </svg>
+          </span>
+         </button>
+        </div>
+       </code-block>
+       <p>
+        In the above example, the reference count for the empty list object
+        <code>
+         []
+        </code>
+        was 3. The list object was referenced by
+        <code>
+         a
+        </code>
+        ,
+        <code>
+         b
+        </code>
+        and the argument passed to
+        <code>
+         sys.getrefcount()
+        </code>
+        .
+       </p>
+       <p>
+        Back to the GIL:
+       </p>
+       <p>
+        The problem was that this reference count variable needed protection from race conditions where two threads increase or decrease its value simultaneously. If this happens, it can cause either leaked memory that is never released or, even worse, incorrectly release the memory while a reference to that object still exists. This can cause crashes or other “weird” bugs in your Python programs.
+       </p>
+       <p>
+        This reference count variable can be kept safe by adding
+        <em>
+         locks
+        </em>
+        to all data structures that are shared across threads so that they are not modified inconsistently.
+       </p>
+       <p>
+        But adding a lock to each object or groups of objects means multiple locks will exist which can cause another problem—Deadlocks (deadlocks can only happen if there is more than one lock). Another side effect would be decreased performance caused by the repeated acquisition and release of locks.
+       </p>
+       <p>
+        The GIL is a single lock on the interpreter itself which adds a rule that execution of any Python bytecode requires acquiring the interpreter lock. This prevents deadlocks (as there is only one lock) and doesn’t introduce much performance overhead. But it effectively makes any CPU-bound Python program single-threaded.
+       </p>
+       <p>
+        The GIL, although used by interpreters for other languages like Ruby, is not the only solution to this problem. Some languages avoid the requirement of a GIL for thread-safe memory management by using approaches other than reference counting, such as garbage collection.
+       </p>
+       <p>
+        On the other hand, this means that those languages often have to compensate for the loss of single threaded performance benefits of a GIL by adding other performance boosting features like JIT compilers.
+       </p>
+       <div>
+        <div class="rounded border border-light" style="display:block;position:relative;">
+         <div style="display:block;width:100%;padding-top:12.5%;">
+         </div>
+         <div class="rpad rounded border" data-unit="8x1" style="position:absolute;left:0;top:0;right:0;bottom:0;overflow:hidden;">
+         </div>
+        </div>
+        <a class="small text-muted" href="/account/join/" rel="nofollow">
+         <span aria-hidden="true" class="icon baseline mr-1">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#solid--circle-info">
+           </use>
+          </svg>
+         </span>
+         Remove ads
+        </a>
+       </div>
+      </section>
+      <section class="section2">
+       <h2 id="why-was-the-gil-chosen-as-the-solution">
+        Why Was the GIL Chosen as the Solution?
+        <a class="headerlink" href="#why-was-the-gil-chosen-as-the-solution" title="Permanent link">
+        </a>
+       </h2>
+       <p>
+        So, why was an approach that is seemingly so obstructing used in Python? Was it a bad decision by the developers of Python?
+       </p>
+       <p>
+        Well, in the
+        <a href="https://youtu.be/KVKufdTphKs?t=12m11s">
+         words of Larry Hastings
+        </a>
+        , the design decision of the GIL is one of the things that made Python as popular as it is today.
+       </p>
+       <p>
+        Python has been around since the days when operating systems did not have a concept of threads. Python was designed to be easy-to-use in order to make development quicker and more and more developers started using it.
+       </p>
+       <p>
+        A lot of extensions were being written for the existing C libraries whose features were needed in Python. To prevent inconsistent changes, these C extensions required a thread-safe memory management which the GIL provided.
+       </p>
+       <p>
+        The GIL is simple to implement and was easily added to Python. It provides a performance increase to single-threaded programs as only one lock needs to be managed.
+       </p>
+       <p>
+        C libraries that were not thread-safe became easier to integrate. And these C extensions became one of the reasons why Python was readily adopted by different communities.
+       </p>
+       <p>
+        As you can see, the GIL was a pragmatic solution to a difficult problem that the
+        <a href="https://realpython.com/cpython-source-code-guide/">
+         CPython
+        </a>
+        developers faced early on in Python’s life.
+       </p>
+      </section>
+      <section class="section2">
+       <h2 id="the-impact-on-multi-threaded-python-programs">
+        The Impact on Multi-Threaded Python Programs
+        <a class="headerlink" href="#the-impact-on-multi-threaded-python-programs" title="Permanent link">
+        </a>
+       </h2>
+       <p>
+        When you look at a typical Python program—or any computer program for that matter—there’s a difference between those that are CPU-bound in their performance and those that are I/O-bound.
+       </p>
+       <p>
+        CPU-bound programs are those that are pushing the CPU to its limit. This includes programs that do mathematical computations like matrix multiplications, searching, image processing, etc.
+       </p>
+       <p>
+        I/O-bound programs are the ones that spend time waiting for
+        <a href="https://realpython.com/python-input-output/">
+         Input/Output
+        </a>
+        which can come from a user, file, database, network, etc. I/O-bound programs sometimes have to wait for a significant amount of time till they get what they need from the source due to the fact that the source may need to do its own processing before the input/output is ready, for example, a user thinking about what to enter into an input prompt or a database query running in its own process.
+       </p>
+       <p>
+        Let’s have a look at a simple CPU-bound program that performs a countdown:
+       </p>
+       <code-block aria-label="Code block" class="mb-3" data-syntax-language="python">
+        <div class="codeblock__header codeblock--blue">
+         <span aria-label="Language" class="mr-2 noselect">
+          Python
+         </span>
+         <span aria-label="Filename" class="mr-2">
+          <code style="color: inherit; background: inherit;">
+           single_threaded.py
+          </code>
+         </span>
+         <div class="noselect">
+         </div>
+        </div>
+        <div class="codeblock__contents">
+         <div class="highlight highlight--with-header">
+          <pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">threading</span><span class="w"> </span><span class="kn">import</span> <span class="n">Thread</span>
+
+<span class="n">COUNT</span> <span class="o">=</span> <span class="mi">50000000</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">countdown</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="k">while</span> <span class="n">n</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+        <span class="n">n</span> <span class="o">-=</span> <span class="mi">1</span>
+
+<span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+<span class="n">countdown</span><span class="p">(</span><span class="n">COUNT</span><span class="p">)</span>
+<span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Time taken in seconds -'</span><span class="p">,</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span>
+</code></pre>
+         </div>
+         <button aria-label="Copy to clipboard" class="codeblock__copy btn btn-outline-secondary border m-1 px-1 d-hover-only" title="Copy to clipboard">
+          <span aria-hidden="true" class="icon baseline">
+           <svg aria-hidden="true">
+            <use href="/static/icons.1fb5b1968c3f.svg#@copy">
+            </use>
+           </svg>
+          </span>
+         </button>
+        </div>
+       </code-block>
+       <p>
+        Running this code on my system with 4 cores gave the following output:
+       </p>
+       <code-block aria-label="Code block" class="mb-3" data-is-repl="true" data-syntax-language="console">
+        <div class="codeblock__header codeblock--yellow">
+         <span aria-label="Language" class="mr-2 noselect">
+          Shell
+         </span>
+         <div class="noselect">
+          <span aria-label="Toggle prompts and output" class="codeblock__output-toggle" role="button" tabindex="0" title="Toggle prompts and output">
+           <span aria-hidden="true" class="icon baseline js-codeblock-output-on codeblock__header--icon-lower">
+            <svg aria-hidden="true">
+             <use href="/static/icons.1fb5b1968c3f.svg#regular--rectangle-terminal">
+             </use>
+            </svg>
+           </span>
+          </span>
+         </div>
+        </div>
+        <div class="codeblock__contents">
+         <div class="highlight highlight--with-header">
+          <pre><span></span><code><span class="gp">$ </span>python<span class="w"> </span>single_threaded.py
+<span class="go">Time taken in seconds - 6.20024037361145</span>
+</code></pre>
+         </div>
+         <button aria-label="Copy to clipboard" class="codeblock__copy btn btn-outline-secondary border m-1 px-1 d-hover-only" title="Copy to clipboard">
+          <span aria-hidden="true" class="icon baseline">
+           <svg aria-hidden="true">
+            <use href="/static/icons.1fb5b1968c3f.svg#@copy">
+            </use>
+           </svg>
+          </span>
+         </button>
+        </div>
+       </code-block>
+       <p>
+        Now I modified the code a bit to do to the same countdown using two threads in parallel:
+       </p>
+       <code-block aria-label="Code block" class="mb-3" data-syntax-language="python">
+        <div class="codeblock__header codeblock--blue">
+         <span aria-label="Language" class="mr-2 noselect">
+          Python
+         </span>
+         <span aria-label="Filename" class="mr-2">
+          <code style="color: inherit; background: inherit;">
+           multi_threaded.py
+          </code>
+         </span>
+         <div class="noselect">
+         </div>
+        </div>
+        <div class="codeblock__contents">
+         <div class="highlight highlight--with-header">
+          <pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">threading</span><span class="w"> </span><span class="kn">import</span> <span class="n">Thread</span>
+
+<span class="n">COUNT</span> <span class="o">=</span> <span class="mi">50000000</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">countdown</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="k">while</span> <span class="n">n</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+        <span class="n">n</span> <span class="o">-=</span> <span class="mi">1</span>
+
+<span class="n">t1</span> <span class="o">=</span> <span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">countdown</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">COUNT</span><span class="o">//</span><span class="mi">2</span><span class="p">,))</span>
+<span class="n">t2</span> <span class="o">=</span> <span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">countdown</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">COUNT</span><span class="o">//</span><span class="mi">2</span><span class="p">,))</span>
+
+<span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+<span class="n">t1</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+<span class="n">t2</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+<span class="n">t1</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+<span class="n">t2</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+<span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Time taken in seconds -'</span><span class="p">,</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span>
+</code></pre>
+         </div>
+         <button aria-label="Copy to clipboard" class="codeblock__copy btn btn-outline-secondary border m-1 px-1 d-hover-only" title="Copy to clipboard">
+          <span aria-hidden="true" class="icon baseline">
+           <svg aria-hidden="true">
+            <use href="/static/icons.1fb5b1968c3f.svg#@copy">
+            </use>
+           </svg>
+          </span>
+         </button>
+        </div>
+       </code-block>
+       <p>
+        And when I ran it again:
+       </p>
+       <code-block aria-label="Code block" class="mb-3" data-is-repl="true" data-syntax-language="console">
+        <div class="codeblock__header codeblock--yellow">
+         <span aria-label="Language" class="mr-2 noselect">
+          Shell
+         </span>
+         <div class="noselect">
+          <span aria-label="Toggle prompts and output" class="codeblock__output-toggle" role="button" tabindex="0" title="Toggle prompts and output">
+           <span aria-hidden="true" class="icon baseline js-codeblock-output-on codeblock__header--icon-lower">
+            <svg aria-hidden="true">
+             <use href="/static/icons.1fb5b1968c3f.svg#regular--rectangle-terminal">
+             </use>
+            </svg>
+           </span>
+          </span>
+         </div>
+        </div>
+        <div class="codeblock__contents">
+         <div class="highlight highlight--with-header">
+          <pre><span></span><code><span class="gp">$ </span>python<span class="w"> </span>multi_threaded.py
+<span class="go">Time taken in seconds - 6.924342632293701</span>
+</code></pre>
+         </div>
+         <button aria-label="Copy to clipboard" class="codeblock__copy btn btn-outline-secondary border m-1 px-1 d-hover-only" title="Copy to clipboard">
+          <span aria-hidden="true" class="icon baseline">
+           <svg aria-hidden="true">
+            <use href="/static/icons.1fb5b1968c3f.svg#@copy">
+            </use>
+           </svg>
+          </span>
+         </button>
+        </div>
+       </code-block>
+       <p>
+        As you can see, both versions take almost same amount of time to finish. In the multi-threaded version the GIL prevented the CPU-bound threads from executing in parallel.
+       </p>
+       <p>
+        The GIL does not have much impact on the performance of I/O-bound multi-threaded programs as the lock is shared between threads while they are waiting for I/O.
+       </p>
+       <p>
+        But a program whose threads are entirely CPU-bound, e.g., a program that processes an image in parts using threads, would not only become single threaded due to the lock but will also see an increase in execution time, as seen in the above example, in comparison to a scenario where it was written to be entirely single-threaded.
+       </p>
+       <p>
+        This increase is the result of acquire and release overheads added by the lock.
+       </p>
+       <div>
+        <div class="rounded border border-light" style="display:block;position:relative;">
+         <div style="display:block;width:100%;padding-top:12.5%;">
+         </div>
+         <div class="rpad rounded border" data-unit="8x1" style="position:absolute;left:0;top:0;right:0;bottom:0;overflow:hidden;">
+         </div>
+        </div>
+        <a class="small text-muted" href="/account/join/" rel="nofollow">
+         <span aria-hidden="true" class="icon baseline mr-1">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#solid--circle-info">
+           </use>
+          </svg>
+         </span>
+         Remove ads
+        </a>
+       </div>
+      </section>
+      <section class="section2">
+       <h2 id="why-hasnt-the-gil-been-removed-yet">
+        Why Hasn’t the GIL Been Removed Yet?
+        <a class="headerlink" href="#why-hasnt-the-gil-been-removed-yet" title="Permanent link">
+        </a>
+       </h2>
+       <p>
+        The developers of Python receive a lot of complaints regarding this but a language as popular as Python cannot bring a change as significant as the removal of GIL without causing backward incompatibility issues.
+       </p>
+       <p>
+        The GIL can obviously be removed and this has been done multiple times in the past by the developers and researchers but all those attempts broke the existing C extensions which depend heavily on the solution that the GIL provides.
+       </p>
+       <p>
+        Of course, there are other solutions to the problem that the GIL solves but some of them decrease the performance of single-threaded and multi-threaded I/O-bound programs and some of them are just too difficult. After all, you wouldn’t want your existing Python programs to run slower after a new version comes out, right?
+       </p>
+       <p>
+        The creator and BDFL of Python, Guido van Rossum, gave an answer to the community in September 2007 in his article
+        <a href="https://www.artima.com/weblogs/viewpost.jsp?thread=214235">
+         “It isn’t Easy to remove the GIL”
+        </a>
+        :
+       </p>
+       <blockquote>
+        <p>
+         “I’d welcome  a set of patches into Py3k
+         <em>
+          only if
+         </em>
+         the performance for a single-threaded program (and for a multi-threaded but I/O-bound program)
+         <em>
+          does not decrease
+         </em>
+         ”
+        </p>
+       </blockquote>
+       <p>
+        And this condition hasn’t been fulfilled by any of the attempts made since.
+       </p>
+      </section>
+      <section class="section2">
+       <h2 id="why-wasnt-it-removed-in-python-3">
+        Why Wasn’t It Removed in Python 3?
+        <a class="headerlink" href="#why-wasnt-it-removed-in-python-3" title="Permanent link">
+        </a>
+       </h2>
+       <p>
+        Python 3 did have a chance to start a lot of features from scratch and in the process, broke some of the existing C extensions which then required changes to be updated and ported to work with Python 3. This was the reason why the early versions of Python 3 saw slower adoption by the community.
+       </p>
+       <p>
+        But why wasn’t GIL removed alongside?
+       </p>
+       <p>
+        Removing the GIL would have made Python 3 slower in comparison to Python 2 in single-threaded performance and you can imagine what that would have resulted in. You can’t argue with the single-threaded performance benefits of the GIL. So the result is that Python 3 still has the GIL.
+       </p>
+       <p>
+        But Python 3 did bring a major improvement to the existing GIL—
+       </p>
+       <p>
+        We discussed the impact of GIL on “only CPU-bound” and “only I/O-bound” multi-threaded programs but what about the programs where some threads are I/O-bound and some are CPU-bound?
+       </p>
+       <p>
+        In such programs, Python’s GIL was known to starve the I/O-bound threads by not giving them a chance to acquire the GIL from CPU-bound threads.
+       </p>
+       <p>
+        This was because of a mechanism built into Python that forced threads to release the GIL
+        <strong>
+         after a fixed interval
+        </strong>
+        of continuous use and if nobody else acquired the GIL, the same thread could continue its use.
+       </p>
+       <code-block aria-label="Code block" class="mb-3" data-is-repl="true" data-syntax-language="pycon">
+        <div class="codeblock__header codeblock--blue">
+         <span aria-label="Language" class="mr-2 noselect">
+          Python
+         </span>
+         <div class="noselect">
+          <span aria-label="Toggle prompts and output" class="codeblock__output-toggle" role="button" tabindex="0" title="Toggle prompts and output">
+           <span aria-hidden="true" class="icon baseline js-codeblock-output-on codeblock__header--icon-lower">
+            <svg aria-hidden="true">
+             <use href="/static/icons.1fb5b1968c3f.svg#regular--rectangle-terminal">
+             </use>
+            </svg>
+           </span>
+          </span>
+         </div>
+        </div>
+        <div class="codeblock__contents">
+         <div class="highlight highlight--with-header">
+          <pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># The interval is set to 100 instructions:</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sys</span><span class="o">.</span><span class="n">getcheckinterval</span><span class="p">()</span>
+<span class="go">100</span>
+</code></pre>
+         </div>
+         <button aria-label="Copy to clipboard" class="codeblock__copy btn btn-outline-secondary border m-1 px-1 d-hover-only" title="Copy to clipboard">
+          <span aria-hidden="true" class="icon baseline">
+           <svg aria-hidden="true">
+            <use href="/static/icons.1fb5b1968c3f.svg#@copy">
+            </use>
+           </svg>
+          </span>
+         </button>
+        </div>
+       </code-block>
+       <p>
+        The problem in this mechanism was that most of the time the CPU-bound thread would reacquire the GIL itself before other threads could acquire it. This was researched by David Beazley and visualizations can be found
+        <a href="http://www.dabeaz.com/blog/2010/01/python-gil-visualized.html">
+         here
+        </a>
+        .
+       </p>
+       <p>
+        This problem was fixed in Python 3.2 in 2009 by Antoine Pitrou who
+        <a href="https://mail.python.org/pipermail/python-dev/2009-October/093321.html">
+         added a mechanism
+        </a>
+        of looking at the number of GIL acquisition requests by other threads that got dropped and not allowing the current thread to reacquire GIL before other threads got a chance to run.
+       </p>
+      </section>
+      <section class="section2">
+       <h2 id="how-to-deal-with-pythons-gil">
+        How to Deal With Python’s GIL
+        <a class="headerlink" href="#how-to-deal-with-pythons-gil" title="Permanent link">
+        </a>
+       </h2>
+       <p>
+        If the GIL is causing you problems, here a few approaches you can try:
+       </p>
+       <p>
+        <strong>
+         Multi-processing vs multi-threading:
+        </strong>
+        The most popular way is to use a multi-processing approach where you use multiple processes instead of threads. Each Python process gets its own Python interpreter and memory space so the GIL won’t be a problem. Python has a
+        <a href="https://docs.python.org/2/library/multiprocessing.html">
+         <code>
+          multiprocessing
+         </code>
+        </a>
+        module which lets us create processes easily like this:
+       </p>
+       <code-block aria-label="Code block" class="mb-3" data-syntax-language="python">
+        <div class="codeblock__header codeblock--blue">
+         <span aria-label="Language" class="mr-2 noselect">
+          Python
+         </span>
+         <span aria-label="Filename" class="mr-2">
+          <code style="color: inherit; background: inherit;">
+           multiprocess.py
+          </code>
+         </span>
+         <div class="noselect">
+         </div>
+        </div>
+        <div class="codeblock__contents">
+         <div class="highlight highlight--with-header">
+          <pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pool</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+
+<span class="n">COUNT</span> <span class="o">=</span> <span class="mi">50000000</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">countdown</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="k">while</span> <span class="n">n</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+        <span class="n">n</span> <span class="o">-=</span> <span class="mi">1</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">'__main__'</span><span class="p">:</span>
+    <span class="n">pool</span> <span class="o">=</span> <span class="n">Pool</span><span class="p">(</span><span class="n">processes</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">r1</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span><span class="n">countdown</span><span class="p">,</span> <span class="p">[</span><span class="n">COUNT</span><span class="o">//</span><span class="mi">2</span><span class="p">])</span>
+    <span class="n">r2</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span><span class="n">countdown</span><span class="p">,</span> <span class="p">[</span><span class="n">COUNT</span><span class="o">//</span><span class="mi">2</span><span class="p">])</span>
+    <span class="n">pool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">pool</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">'Time taken in seconds -'</span><span class="p">,</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span>
+</code></pre>
+         </div>
+         <button aria-label="Copy to clipboard" class="codeblock__copy btn btn-outline-secondary border m-1 px-1 d-hover-only" title="Copy to clipboard">
+          <span aria-hidden="true" class="icon baseline">
+           <svg aria-hidden="true">
+            <use href="/static/icons.1fb5b1968c3f.svg#@copy">
+            </use>
+           </svg>
+          </span>
+         </button>
+        </div>
+       </code-block>
+       <p>
+        Running this on my system gave this output:
+       </p>
+       <code-block aria-label="Code block" class="mb-3" data-is-repl="true" data-syntax-language="console">
+        <div class="codeblock__header codeblock--yellow">
+         <span aria-label="Language" class="mr-2 noselect">
+          Shell
+         </span>
+         <div class="noselect">
+          <span aria-label="Toggle prompts and output" class="codeblock__output-toggle" role="button" tabindex="0" title="Toggle prompts and output">
+           <span aria-hidden="true" class="icon baseline js-codeblock-output-on codeblock__header--icon-lower">
+            <svg aria-hidden="true">
+             <use href="/static/icons.1fb5b1968c3f.svg#regular--rectangle-terminal">
+             </use>
+            </svg>
+           </span>
+          </span>
+         </div>
+        </div>
+        <div class="codeblock__contents">
+         <div class="highlight highlight--with-header">
+          <pre><span></span><code><span class="gp">$ </span>python<span class="w"> </span>multiprocess.py
+<span class="go">Time taken in seconds - 4.060242414474487</span>
+</code></pre>
+         </div>
+         <button aria-label="Copy to clipboard" class="codeblock__copy btn btn-outline-secondary border m-1 px-1 d-hover-only" title="Copy to clipboard">
+          <span aria-hidden="true" class="icon baseline">
+           <svg aria-hidden="true">
+            <use href="/static/icons.1fb5b1968c3f.svg#@copy">
+            </use>
+           </svg>
+          </span>
+         </button>
+        </div>
+       </code-block>
+       <p>
+        A decent performance increase compared to the multi-threaded version, right?
+       </p>
+       <p>
+        The time didn’t drop to half of what we saw above because process management has its own overheads. Multiple processes are heavier than multiple threads, so, keep in mind that this could become a scaling bottleneck.
+       </p>
+       <p>
+        <strong>
+         Alternative Python interpreters:
+        </strong>
+        Python has multiple interpreter implementations. CPython, Jython, IronPython and
+        <a href="https://realpython.com/pypy-faster-python/">
+         PyPy
+        </a>
+        , written in
+        <a href="https://realpython.com/c-for-python-programmers/">
+         C
+        </a>
+        ,
+        <a href="https://realpython.com/oop-in-python-vs-java/">
+         Java
+        </a>
+        , C# and Python respectively, are the most popular ones. GIL exists only in the original Python implementation that is CPython. If your program, with its libraries, is available for one of the other implementations then you can try them out as well.
+       </p>
+       <p>
+        <strong>
+         Just wait it out:
+        </strong>
+        While many Python users take advantage of the single-threaded performance benefits of GIL. The multi-threading programmers don’t have to fret as some of the brightest minds in the Python community are working to remove the GIL from CPython. One such attempt is known as the
+        <a href="https://github.com/larryhastings/gilectomy">
+         Gilectomy
+        </a>
+        .
+       </p>
+       <p>
+        The Python GIL is often regarded as a mysterious and difficult topic. But keep in mind that as a Pythonista you’re usually only affected by it if you are writing C extensions or if you’re using CPU-bound multi-threading in your programs.
+       </p>
+       <p>
+        In that case, this article should give you everything you need to understand what the GIL is and how to deal with it in your own projects. And if you want to understand the low-level inner workings of GIL, I’d recommend you watch the
+        <a href="https://youtu.be/Obt-vMVdM8s">
+         Understanding the Python GIL
+        </a>
+        talk by David Beazley.
+       </p>
+       <div class="container border rounded text-wrap-pretty my-3">
+        <p class="my-3">
+         <mark class="marker-highlight">
+          <strong>
+           <span aria-hidden="true" class="icon baseline">
+            <svg aria-hidden="true">
+             <use href="/static/icons.1fb5b1968c3f.svg#@quiz">
+             </use>
+            </svg>
+           </span>
+           Take the Quiz:
+          </strong>
+         </mark>
+         Test your knowledge with our interactive “What Is the Python Global Interpreter Lock (GIL)?” quiz. You’ll receive a score upon completion to help you track your learning progress:
+        </p>
+        <hr/>
+        <div class="row my-3">
+         <div class="col-xs-12 col-sm-4 col-md-3 align-self-center">
+          <a href="/quizzes/python-gil/" tabindex="-1">
+           <div class="embed-responsive embed-responsive-16by9">
+            <img alt="What is the Python Global Interpreter Lock (GIL)?" class="card-img-top m-0 p-0 embed-responsive-item rounded" height="1080" sizes="(min-width: 1200px) 142px, (min-width: 1000px) 122px, (min-width: 780px) 112px, (min-width: 580px) 139px, calc(100vw - 62px)" src="https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg" srcset="/cdn-cgi/image/width=480,format=auto/https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg 480w, /cdn-cgi/image/width=640,format=auto/https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg 640w, /cdn-cgi/image/width=960,format=auto/https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg 960w, /cdn-cgi/image/width=1920,format=auto/https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg 1920w" style="object-fit: contain; background: #abe5b2;" width="1920"/>
+            <div class="card-img-overlay d-flex align-items-center">
+             <div class="mx-auto">
+              <span class="text-light" style="opacity: 0.90;">
+               <span aria-hidden="true" class="icon baseline scale2x">
+                <svg aria-hidden="true">
+                 <use href="/static/icons.1fb5b1968c3f.svg#@quiz">
+                 </use>
+                </svg>
+               </span>
+              </span>
+             </div>
+            </div>
+           </div>
+          </a>
+         </div>
+         <div class="col">
+          <div class="mt-3 d-md-none">
+          </div>
+          <p class="small text-muted mb-0">
+           <strong>
+            Interactive Quiz
+           </strong>
+          </p>
+          <a class="stretched-link" href="/quizzes/python-gil/">
+           <span class="my-0 h4">
+            What Is the Python Global Interpreter Lock (GIL)?
+           </span>
+          </a>
+          <p class="text-muted mb-0 small">
+           Test your knowledge of Python's Global Interpreter Lock (GIL), how it affects multi-threaded programs, and ways to work around it.
+          </p>
+         </div>
+        </div>
+       </div>
+      </section>
+      <div class="d-flex justify-content-center flex-wrap gap-2 my-3">
+       <completion-status article-slug="python-gil" class="btn-group mb-0" data-api-article-bookmark-url="/api/v1/articles/python-gil/bookmark/" data-api-article-completion-status-url="/api/v1/articles/python-gil/completion_status/">
+        <button class="btn btn-secondary border-right" data-target-complete-button="" disabled="" style="border-top-right-radius: 0; border-bottom-right-radius: 0;" title="Click to mark as completed">
+         Mark as Completed
+        </button>
+        <button class="btn btn-secondary border-left" data-target-bookmark-button="" disabled="" title="Add bookmark">
+         <span aria-hidden="true" class="icon baseline">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#light--bookmark">
+           </use>
+          </svg>
+         </span>
+        </button>
+       </completion-status>
+       <div class="btn-group mb-0">
+        <a aria-label="Liked it (thumbs up)" class="btn btn-secondary border-right" href="/feedback/survey/article/python-gil/liked/?from=article-footer" role="button" style="border-top-right-radius: 0; border-bottom-right-radius: 0;" target="_blank" title="Liked it">
+         <span aria-hidden="true" class="icon">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#light--thumbs-up">
+           </use>
+          </svg>
+         </span>
+        </a>
+        <a aria-label="Disliked it (thumbs down)" class="btn btn-secondary border-left" href="/feedback/survey/article/python-gil/disliked/?from=article-footer" role="button" target="_blank" title="Disliked it">
+         <span aria-hidden="true" class="icon baseline">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#light--thumbs-down">
+           </use>
+          </svg>
+         </span>
+        </a>
+       </div>
+       <share-button bluesky-text="Interesting #Python article by @realpython.com:" email-body="Check out this Python article:%0A%0AWhat Is the Python Global Interpreter Lock (GIL)?" email-subject="Python article for you" twitter-text="Interesting #Python article by @realpython:" url="https://realpython.com/python-gil/" url-title="What Is the Python Global Interpreter Lock (GIL)?">
+        <button aria-label="Share" class="btn btn-secondary" title="Share" type="button">
+         <span aria-hidden="true" class="icon baseline mr-1">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#@share-light">
+           </use>
+          </svg>
+         </span>
+         Share
+        </button>
+       </share-button>
+      </div>
+      <div class="sidebar-module sidebar-module-inset border card p-2 mb-3">
+       <p class="mb-2">
+        <span class="badge badge-pill badge-success">
+         <span aria-hidden="true" class="icon baseline">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#v4--play-circle">
+           </use>
+          </svg>
+         </span>
+         Recommended Course
+        </span>
+       </p>
+       <p class="mb-0">
+        <a class="text-success font-weight-medium" data-previewable="" href="/courses/understanding-global-interpreter-lock-gil/">
+         Understanding Python's Global Interpreter Lock (GIL)
+        </a>
+        <span class="text-muted small">
+         (39m)
+        </span>
+       </p>
+      </div>
+     </div>
+     <div class="card mt-4 mb-4 bg-secondary">
+      <p class="card-header h3 text-center bg-light">
+       🐍 Python Tricks 💌
+      </p>
+      <div class="card-body">
+       <div class="container">
+        <div class="row">
+         <div class="col-xs-12 col-sm-7">
+          <p>
+           Get a short &amp; sweet
+           <strong>
+            Python Trick
+           </strong>
+           delivered to your inbox every couple of days. No spam ever. Unsubscribe any time. Curated by the Real Python team.
+          </p>
+         </div>
+         <div class="col-xs-12 col-sm-5">
+          <img alt="Python Tricks Dictionary Merge" class="img-fluid rounded mb-3" height="490" loading="lazy" src="/static/pytrick-dict-merge.4201a0125a5e.png" width="738"/>
+         </div>
+        </div>
+        <div class="row mb-3">
+         <form action="/optins/process/" class="col-12" method="post">
+          <input name="csrfmiddlewaretoken" type="hidden" value="6WxKrwlVBjvYOJnldvU3ibP4jcedtiYR1CoogtLvFk7PkO4hCrzzocVdPKM1PjDT"/>
+          <input name="slug" type="hidden" value="static-python-tricks-footer"/>
+          <input name="source_path" type="hidden" value="/python-gil/"/>
+          <div class="form-group">
+           <input class="form-control form-control-lg" name="email" placeholder="Email Address" required="" type="email"/>
+          </div>
+          <button class="btn btn-primary btn-block" name="submit" type="submit">
+           Send Me Python Tricks »
+          </button>
+         </form>
+        </div>
+       </div>
+      </div>
+     </div>
+     <div class="card mt-3" id="author">
+      <p class="card-header h3">
+       About
+       <strong>
+        Abhinav Ajitsaria
+       </strong>
+      </p>
+      <div class="card-body">
+       <div class="container p-0">
+        <div class="row">
+         <div class="col-12 col-md-3 align-self-center">
+          <a aria-hidden="true" href="/team/aajitsaria/" tabindex="-1">
+           <img alt="Abhinav Ajitsaria" class="d-block d-md-none rounded-circle img-fluid w-33 mb-0 mx-auto" height="720" loading="lazy" sizes="(min-width: 580px) 154px, calc(33.08vw - 24px)" src="/cdn-cgi/image/width=720,height=720,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/abhinav2019c1.3a84afd775e6.jpg" srcset="/cdn-cgi/image/width=180,height=180,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/abhinav2019c1.3a84afd775e6.jpg 180w, /cdn-cgi/image/width=240,height=240,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/abhinav2019c1.3a84afd775e6.jpg 240w, /cdn-cgi/image/width=360,height=360,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/abhinav2019c1.3a84afd775e6.jpg 360w, /cdn-cgi/image/width=720,height=720,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/abhinav2019c1.3a84afd775e6.jpg 720w" style="background: #9f9f9f;" width="720"/>
+           <img alt="Abhinav Ajitsaria" class="d-none d-md-block rounded-circle img-fluid w-100 mb-0" height="720" loading="lazy" sizes="(min-width: 1200px) 140px, calc(-1.5vw + 137px)" src="/cdn-cgi/image/width=720,height=720,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/abhinav2019c1.3a84afd775e6.jpg" srcset="/cdn-cgi/image/width=180,height=180,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/abhinav2019c1.3a84afd775e6.jpg 180w, /cdn-cgi/image/width=240,height=240,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/abhinav2019c1.3a84afd775e6.jpg 240w, /cdn-cgi/image/width=360,height=360,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/abhinav2019c1.3a84afd775e6.jpg 360w, /cdn-cgi/image/width=720,height=720,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/abhinav2019c1.3a84afd775e6.jpg 720w" style="background: #9f9f9f;" width="720"/>
+          </a>
+         </div>
+         <div class="col mt-3">
+          <p>
+           Abhinav is a Software Engineer from India. He loves to talk about system design, machine learning, AWS and of course, Python.
+          </p>
+          <a class="card-link" href="/team/aajitsaria/">
+           » More about Abhinav
+          </a>
+         </div>
+        </div>
+       </div>
+      </div>
+      <hr class="my-0"/>
+      <div class="card-body pb-0">
+       <div class="container">
+        <div class="row">
+         <p>
+          <em>
+           Each tutorial at Real Python is created by a team of developers so that it meets our high quality standards. The team members who worked on this tutorial are:
+          </em>
+         </p>
+        </div>
+        <div class="row align-items-center w-100 mx-auto">
+         <div class="col-4 col-sm-2 align-self-center">
+          <a aria-hidden="true" data-previewable="" href="/team/asantos/" tabindex="-1">
+           <img alt="Aldren Santos" class="rounded-circle img-fluid w-100" height="500" loading="lazy" sizes="(min-width: 1200px) 73px, (min-width: 780px) calc(-0.75vw + 69px), (min-width: 580px) 43px, calc(33.46vw - 64px)" src="/cdn-cgi/image/width=500,height=500,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/Aldren_Santos_Real_Python.6b0861d8b841.png" srcset="/cdn-cgi/image/width=125,height=125,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/Aldren_Santos_Real_Python.6b0861d8b841.png 125w, /cdn-cgi/image/width=166,height=166,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/Aldren_Santos_Real_Python.6b0861d8b841.png 166w, /cdn-cgi/image/width=250,height=250,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/Aldren_Santos_Real_Python.6b0861d8b841.png 250w, /cdn-cgi/image/width=500,height=500,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/Aldren_Santos_Real_Python.6b0861d8b841.png 500w" style="background: #d2cec3;" width="500"/>
+          </a>
+         </div>
+         <div class="col pl-0 d-none d-sm-block">
+          <a class="card-link small" data-previewable="" href="/team/asantos/">
+           <p>
+            Aldren
+           </p>
+          </a>
+         </div>
+         <div class="col-4 col-sm-2 align-self-center">
+          <a aria-hidden="true" data-previewable="" href="/team/dbader/" tabindex="-1">
+           <img alt="Dan Bader" class="rounded-circle img-fluid w-100" height="1000" loading="lazy" sizes="(min-width: 1200px) 73px, (min-width: 780px) calc(-0.75vw + 69px), (min-width: 580px) 43px, calc(33.46vw - 64px)" src="/cdn-cgi/image/width=1000,height=1000,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/daniel-square.d58bf4388750.jpg" srcset="/cdn-cgi/image/width=250,height=250,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/daniel-square.d58bf4388750.jpg 250w, /cdn-cgi/image/width=333,height=333,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/daniel-square.d58bf4388750.jpg 333w, /cdn-cgi/image/width=500,height=500,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/daniel-square.d58bf4388750.jpg 500w, /cdn-cgi/image/width=1000,height=1000,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/daniel-square.d58bf4388750.jpg 1000w" style="background: #dad5cf;" width="1000"/>
+          </a>
+         </div>
+         <div class="col pl-0 d-none d-sm-block">
+          <a class="card-link small" data-previewable="" href="/team/dbader/">
+           <p>
+            Dan
+           </p>
+          </a>
+         </div>
+         <div class="col-4 col-sm-2 align-self-center">
+         </div>
+         <div class="col pl-0 d-none d-sm-block">
+         </div>
+        </div>
+       </div>
+      </div>
+     </div>
+     <div class="bg-light rounded py-4 my-4 shadow shadow-sm mx-n2">
+      <div class="col-12 text-center d-block d-md-none">
+       <p class="h2 mb-3">
+        Master
+        <u>
+         <span class="marker-highlight">
+          Real-World Python Skills
+         </span>
+        </u>
+        With Unlimited Access to Real Python
+       </p>
+       <p class="mb-1">
+        <img alt="Locked learning resources" class="w-75" height="260" loading="lazy" src="/static/videos/lesson-locked.f5105cfd26db.svg" width="510"/>
+       </p>
+       <p class="mx-auto w-75 mb-3 small">
+        <strong>
+         Join us and get access to thousands of tutorials, hands-on video courses, and a community of expert Pythonistas:
+        </strong>
+       </p>
+       <p class="mb-0">
+        <a class="btn btn-primary px-4 mb-0" href="/account/join/?utm_source=rp_article_footer&amp;utm_content=python-gil">
+         Level Up Your Python Skills »
+        </a>
+       </p>
+      </div>
+      <div class="col-12 text-center d-none d-md-block">
+       <p class="h2 mb-2">
+        Master
+        <u>
+         <span class="marker-highlight">
+          Real-World Python Skills
+         </span>
+        </u>
+        <br/>
+        With Unlimited Access to Real Python
+       </p>
+       <p class="mb-2">
+        <img alt="Locked learning resources" class="w-50 mb-2" height="260" loading="lazy" src="/static/videos/lesson-locked.f5105cfd26db.svg" width="510"/>
+       </p>
+       <p class="mx-auto w-50 mb-3">
+        <strong>
+         Join us and get access to thousands of tutorials, hands-on video courses, and a community of expert Pythonistas:
+        </strong>
+       </p>
+       <p>
+        <a class="btn btn-primary px-4" href="/account/join/?utm_source=rp_article_footer&amp;utm_content=python-gil">
+         Level Up Your Python Skills »
+        </a>
+       </p>
+      </div>
+     </div>
+     <div class="card mt-4" id="reader-comments">
+      <p class="card-header h3">
+       What Do You Think?
+      </p>
+      <div class="text-center mt-3 mb-0 p-0">
+       <div class="mb-2">
+        <strong class="mr-2">
+         Rate this article:
+        </strong>
+        <div class="btn-group mb-0">
+         <a aria-label="Liked it (thumbs up)" class="btn btn-secondary border-right" href="/feedback/survey/article/python-gil/liked/?from=article-comments" role="button" style="border-top-right-radius: 0; border-bottom-right-radius: 0;" target="_blank" title="Liked it">
+          <span aria-hidden="true" class="icon">
+           <svg aria-hidden="true">
+            <use href="/static/icons.1fb5b1968c3f.svg#light--thumbs-up">
+            </use>
+           </svg>
+          </span>
+         </a>
+         <a aria-label="Disliked it (thumbs down)" class="btn btn-secondary border-left" href="/feedback/survey/article/python-gil/disliked/?from=article-comments" role="button" target="_blank" title="Disliked it">
+          <span aria-hidden="true" class="icon baseline">
+           <svg aria-hidden="true">
+            <use href="/static/icons.1fb5b1968c3f.svg#light--thumbs-down">
+            </use>
+           </svg>
+          </span>
+         </a>
+        </div>
+       </div>
+       <div class="d-flex justify-content-center flex-wrap gap-2 my-3">
+        <a aria-label="Share on LinkedIn" class="btn btn-sm share-linkedin" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Frealpython.com%2Fpython-gil%2F" rel="nofollow" target="_blank">
+         <span aria-hidden="true" class="icon baseline mr-1">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#brands--linkedin">
+           </use>
+          </svg>
+         </span>
+         LinkedIn
+        </a>
+        <a aria-label="Share on X/Twitter" class="btn btn-sm share-x-twitter" href="https://twitter.com/intent/tweet/?text=Interesting%20Python%20article%20on%20%40realpython%3A%20What%20Is%20the%20Python%20Global%20Interpreter%20Lock%20%28GIL%29%3F&amp;url=https%3A%2F%2Frealpython.com%2Fpython-gil%2F" rel="nofollow" target="_blank">
+         <span aria-hidden="true" class="icon baseline mr-1">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#brands--x-twitter">
+           </use>
+          </svg>
+         </span>
+         Twitter
+        </a>
+        <a aria-label="Share on Bluesky" class="btn btn-sm share-bluesky" href="https://bsky.app/intent/compose?text=Interesting%20Python%20article%20on%20%40realpython.com%3A%20What%20Is%20the%20Python%20Global%20Interpreter%20Lock%20%28GIL%29%3F%20https%3A%2F%2Frealpython.com%2Fpython-gil%2F" rel="nofollow" target="_blank">
+         <span aria-hidden="true" class="icon baseline mr-1">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#brands--bluesky">
+           </use>
+          </svg>
+         </span>
+         Bluesky
+        </a>
+        <a aria-label="Share on Facebook" class="btn btn-sm share-facebook" href="https://facebook.com/sharer/sharer.php?u=https%3A%2F%2Frealpython.com%2Fpython-gil%2F" rel="nofollow" target="_blank">
+         <span aria-hidden="true" class="icon baseline mr-1">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#brands--facebook">
+           </use>
+          </svg>
+         </span>
+         Facebook
+        </a>
+        <a aria-label="Share via Email" class="btn btn-sm share-email" href="mailto:?subject=Python%20article%20for%20you&amp;body=What%20Is%20the%20Python%20Global%20Interpreter%20Lock%20%28GIL%29%3F%20on%20Real%20Python%0A%0Ahttps%3A%2F%2Frealpython.com%2Fpython-gil%2F%0A" rel="nofollow" target="_blank">
+         <span aria-hidden="true" class="icon baseline mr-1">
+          <svg aria-hidden="true">
+           <use href="/static/icons.1fb5b1968c3f.svg#solid--envelope">
+           </use>
+          </svg>
+         </span>
+         Email
+        </a>
+       </div>
+      </div>
+      <div class="card-body pt-0 text-wrap-pretty">
+       <p>
+        What’s your #1 takeaway or favorite thing you learned? How are you going to put your newfound skills to use? Leave a comment below and let us know.
+       </p>
+       <div class="alert alert-dark">
+        <p class="mb-0">
+         <strong>
+          Commenting Tips:
+         </strong>
+         The most useful comments are those written with the goal of learning from or helping out other students.
+         <a href="https://realpython.com/python-beginner-tips/#tip-9-ask-good-questions" target="_blank">
+          Get tips for asking good questions
+         </a>
+         and
+         <a href="https://support.realpython.com" target="_blank">
+          get answers to common questions in our support portal
+         </a>
+         .
+        </p>
+        <hr/>
+        Looking for a real-time conversation? Visit the
+        <a href="/community/" target="_blank">
+         Real Python Community Chat
+        </a>
+        or join the next
+        <a href="/office-hours/" target="_blank">
+         “Office Hours” Live Q&amp;A Session
+        </a>
+        . Happy Pythoning!
+       </div>
+       <div class="mb-4" id="disqus_thread">
+       </div>
+      </div>
+     </div>
+     <div class="card mt-4 mb-4">
+      <p class="card-header h3">
+       Keep Learning
+      </p>
+      <div class="card-body">
+       <p class="mb-0">
+        Related Topics:
+        <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/advanced/">
+         advanced
+        </a>
+        <a class="badge badge-light text-muted" data-previewable="" href="/tutorials/python/">
+         python
+        </a>
+       </p>
+       <p class="mt-3 mb-0">
+        Related Learning Paths:
+       </p>
+       <ul class="mb-0">
+        <li>
+         <a data-previewable="" href="/learning-paths/python-concurrency-parallel-programming/?utm_source=realpython&amp;utm_medium=web&amp;utm_campaign=related-learning-path&amp;utm_content=python-gil">
+          Concurrency and Async Programming
+         </a>
+        </li>
+       </ul>
+       <p class="mt-3 mb-0">
+        Related Courses:
+       </p>
+       <ul class="mb-0">
+        <li>
+         <a data-previewable="" href="/courses/understanding-global-interpreter-lock-gil/?utm_source=realpython&amp;utm_medium=web&amp;utm_campaign=related-course&amp;utm_content=python-gil">
+          Understanding Python's Global Interpreter Lock (GIL)
+         </a>
+        </li>
+       </ul>
+       <p class="mt-3 mb-0">
+        Related Tutorials:
+       </p>
+       <ul class="mb-0">
+        <li>
+         <a data-previewable="" href="/python-concurrency/?utm_source=realpython&amp;utm_medium=web&amp;utm_campaign=related-post&amp;utm_content=python-gil">
+          Speed Up Your Python Program With Concurrency
+         </a>
+        </li>
+        <li>
+         <a data-previewable="" href="/async-io-python/?utm_source=realpython&amp;utm_medium=web&amp;utm_campaign=related-post&amp;utm_content=python-gil">
+          Python's asyncio: A Hands-On Walkthrough
+         </a>
+        </li>
+        <li>
+         <a data-previewable="" href="/intro-to-python-threading/?utm_source=realpython&amp;utm_medium=web&amp;utm_campaign=related-post&amp;utm_content=python-gil">
+          An Intro to Threading in Python
+         </a>
+        </li>
+        <li>
+         <a data-previewable="" href="/python-memory-management/?utm_source=realpython&amp;utm_medium=web&amp;utm_campaign=related-post&amp;utm_content=python-gil">
+          Memory Management in Python
+         </a>
+        </li>
+        <li>
+         <a data-previewable="" href="/python-thread-lock/?utm_source=realpython&amp;utm_medium=web&amp;utm_campaign=related-post&amp;utm_content=python-gil">
+          Python Thread Safety: Using a Lock and Other Techniques
+         </a>
+        </li>
+       </ul>
+      </div>
+     </div>
+     <div class="modal fade" id="rprw" role="dialog" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+       <div class="modal-content">
+        <div class="modal-header border-0">
+         <div class="col-12 col-lg-9 mx-auto modal-title text-center my-2">
+          <h2 class="my-0">
+           Keep reading Real Python by creating a free account or signing in:
+          </h2>
+         </div>
+        </div>
+        <div class="modal-body bg-light">
+         <div class="col-12 text-center">
+          <div class="col-12 col-lg-8 mx-auto mb-2 mt-3">
+           <a href="/account/signup/?intent=continue_reading&amp;utm_source=rp&amp;utm_medium=web&amp;utm_campaign=rwn&amp;utm_content=v1&amp;next=%2Fpython-gil%2F">
+            <img alt="Keep reading" class="w-100" height="260" loading="lazy" src="/static/videos/lesson-locked.f5105cfd26db.svg" width="510"/>
+           </a>
+          </div>
+          <p>
+           <a class="btn btn-primary px-5" href="/account/signup/?intent=continue_reading&amp;utm_source=rp&amp;utm_medium=web&amp;utm_campaign=rwn&amp;utm_content=v1&amp;next=%2Fpython-gil%2F">
+            Continue »
+           </a>
+          </p>
+         </div>
+        </div>
+        <div class="modal-footer border-0">
+         <p class="text-center text-muted mt-2 mb-1">
+          Already have an account?
+          <a href="/account/login/?next=/python-gil/">
+           Sign-In
+          </a>
+         </p>
+        </div>
+       </div>
+      </div>
+     </div>
+     <script async="" src="/static/frontend/reader/rw.9756efb3ba13.js">
+     </script>
+    </div>
+   </div>
+  </main>
+  <footer class="footer pb-4">
+   <div class="mx-5">
+    <div class="row justify-content-lg-center">
+     <div class="mx-4 mt-5">
+      <h5>
+       Learn Python
+      </h5>
+      <ul class="list-unstyled mb-0">
+       <li>
+        <a href="/start-here/">
+         Start Here
+        </a>
+       </li>
+       <li>
+        <a href="/search">
+         Learning Resources
+        </a>
+       </li>
+       <li>
+        <a href="/mentor/">
+         Code Mentor
+        </a>
+       </li>
+       <li>
+        <a href="/ref/">
+         Python Reference
+        </a>
+       </li>
+       <li>
+        <a href="/cheatsheets/python/">
+         Python Cheat Sheet
+        </a>
+       </li>
+       <li>
+        <a href="https://support.realpython.com/">
+         Support Center
+        </a>
+       </li>
+      </ul>
+     </div>
+     <div class="mx-4 mt-5">
+      <h5>
+       Courses &amp; Paths
+      </h5>
+      <ul class="list-unstyled mb-0">
+       <li>
+        <a href="/learning-paths/">
+         Learning Paths
+        </a>
+       </li>
+       <li>
+        <a href="/quizzes/">
+         Quizzes &amp; Exercises
+        </a>
+       </li>
+       <li>
+        <a href="/tutorials/all/">
+         Browse Topics
+        </a>
+       </li>
+       <li>
+        <a href="/live/">
+         Live Courses
+        </a>
+       </li>
+       <li>
+        <a href="/books/">
+         Books
+        </a>
+       </li>
+      </ul>
+     </div>
+     <div class="mx-4 mt-5">
+      <h5>
+       Community
+      </h5>
+      <ul class="list-unstyled mb-0">
+       <li>
+        <a href="/podcasts/rpp/">
+         Podcast
+        </a>
+       </li>
+       <li>
+        <a href="/newsletter/">
+         Newsletter
+        </a>
+       </li>
+       <li>
+        <a href="/community/">
+         Community Chat
+        </a>
+       </li>
+       <li>
+        <a href="/office-hours/">
+         Office Hours
+        </a>
+       </li>
+       <li>
+        <a href="/learner-stories/">
+         Learner Stories
+        </a>
+       </li>
+      </ul>
+     </div>
+     <div class="mx-4 mt-5">
+      <h5>
+       Membership
+      </h5>
+      <ul class="list-unstyled mb-0">
+       <li>
+        <a href="/account/join/">
+         Plans &amp; Pricing
+        </a>
+       </li>
+       <li>
+        <a href="/account/join-team/">
+         Team Plans
+        </a>
+       </li>
+       <li>
+        <a href="/account/join-team/inquiry/">
+         For Business
+        </a>
+       </li>
+       <li>
+        <a href="/account/join-team/education-inquiry/">
+         For Schools
+        </a>
+       </li>
+       <li>
+        <a href="/learner-stories/">
+         Reviews
+        </a>
+       </li>
+      </ul>
+     </div>
+     <div class="mx-4 mt-5">
+      <h5>
+       Company
+      </h5>
+      <ul class="list-unstyled mb-0">
+       <li>
+        <a href="/about/">
+         About Us
+        </a>
+       </li>
+       <li>
+        <a href="/team/">
+         Team
+        </a>
+       </li>
+       <li>
+        <a href="/mission/">
+         Mission &amp; Values
+        </a>
+       </li>
+       <li>
+        <a href="/editorial-guidelines/">
+         Editorial Guidelines
+        </a>
+       </li>
+       <li>
+        <a href="/sponsorships/">
+         Sponsorships
+        </a>
+       </li>
+       <li>
+        <a href="https://realpython.workable.com">
+         Careers
+        </a>
+       </li>
+       <li>
+        <a href="/media-kit/">
+         Press Kit
+        </a>
+       </li>
+       <li>
+        <a href="/merch">
+         Merch
+        </a>
+       </li>
+      </ul>
+     </div>
+    </div>
+    <div class="flex-column flex-lg-row justify-content-center align-items-center mt-5 row">
+     <div class="d-flex justify-content-center mx-4 text-muted flex-nowrap">
+      <a class="highlight-icon-hover-dark px-2 ml-n2" href="https://www.youtube.com/realpython" title="YouTube">
+       <span aria-hidden="true" class="icon baseline">
+        <svg aria-hidden="true">
+         <use href="/static/icons.1fb5b1968c3f.svg#brands--youtube">
+         </use>
+        </svg>
+       </span>
+      </a>
+      <a class="highlight-icon-hover-dark px-2" href="https://x.com/realpython" title="X/Twitter">
+       <span aria-hidden="true" class="icon baseline">
+        <svg aria-hidden="true">
+         <use href="/static/icons.1fb5b1968c3f.svg#brands--x-twitter">
+         </use>
+        </svg>
+       </span>
+      </a>
+      <a class="highlight-icon-hover-dark px-2" href="https://www.linkedin.com/company/realpython-com" title="LinkedIn">
+       <span aria-hidden="true" class="icon baseline">
+        <svg aria-hidden="true">
+         <use href="/static/icons.1fb5b1968c3f.svg#brands--linkedin">
+         </use>
+        </svg>
+       </span>
+      </a>
+      <a class="highlight-icon-hover-dark px-2" href="https://www.facebook.com/LearnRealPython" title="Facebook">
+       <span aria-hidden="true" class="icon baseline">
+        <svg aria-hidden="true">
+         <use href="/static/icons.1fb5b1968c3f.svg#brands--facebook">
+         </use>
+        </svg>
+       </span>
+      </a>
+      <a class="highlight-icon-hover-dark px-2 mr-n2" href="https://github.com/realpython/" title="GitHub">
+       <span aria-hidden="true" class="icon baseline">
+        <svg aria-hidden="true">
+         <use href="/static/icons.1fb5b1968c3f.svg#brands--github">
+         </use>
+        </svg>
+       </span>
+      </a>
+     </div>
+     <div class="mx-4 small text-muted text-center text-wrap-balance">
+      <a href="/privacy-policy/">
+       Privacy Policy
+      </a>
+      ⋅
+      <a href="/terms/">
+       Terms of Use
+      </a>
+      ⋅
+      <a href="/security/">
+       Security
+      </a>
+      ⋅
+      <a href="/contact/">
+       Contact
+      </a>
+     </div>
+     <div class="mx-4 small text-muted user-select-none text-center">
+      <span>
+       <span aria-hidden="true" class="icon baseline text-color-red">
+        <svg aria-hidden="true">
+         <use href="/static/icons.1fb5b1968c3f.svg#solid--heart">
+         </use>
+        </svg>
+       </span>
+       Happy Pythoning!
+      </span>
+     </div>
+    </div>
+    <div class="d-flex justify-content-center small mt-4">
+     <div class="text-muted text-center text-wrap-balance" style="line-height: 1.25;">
+      <small>
+       © 2012–2026 DevCademy Media Inc. DBA Real Python. All rights reserved.
+       <br/>
+       REALPYTHON™ is a trademark of DevCademy Media Inc.
+      </small>
+      <a class="d-flex justify-content-center mt-3 mx-auto w-50" href="/">
+       <img alt="Real Python - Online Python Training (logo)" class="img-fluid flex-grow-1" height="47" loading="lazy" src="/static/real-python-logo-primary.973743b6d39d.svg" width="120"/>
+      </a>
+     </div>
+    </div>
+   </div>
+  </footer>
+  <script>
+   (function() {
+        var isAndroid = navigator.userAgent.toLowerCase().indexOf("android") > -1;
+        if (!isAndroid) {
+          return;
+        }
+
+        var styles = `
+        @font-face {
+          font-family: 'DejaVu Sans Mono';
+          font-weight: normal;
+          font-style: normal;
+          font-display: swap;
+          src: url('/static/mfonts/dejavu-sans-mono.33f00225f915.woff2') format('woff2'),
+               url('/static/mfonts/dejavu-sans-mono.0da77d3739f3.woff') format('woff'),
+               url('/static/mfonts/dejavu-sans-mono.c2356fc49835.ttf') format('truetype');
+        }
+        code, kbd, pre, samp {
+          font-family: 'DejaVu Sans Mono', monospace;
+        }
+        `
+
+        var styleSheet = document.createElement("style")
+        styleSheet.type = "text/css"
+        styleSheet.innerText = styles
+        document.head.appendChild(styleSheet)
+      })();
+  </script>
+  <script src="/static/jquery.min.2c872dbe60f4.js">
+  </script>
+  <script src="/static/popper.min.aeebb49d0b64.js">
+  </script>
+  <script src="/static/bootstrap.min.248284cdd069.js">
+  </script>
+  <script>
+   (function() {
+      document.querySelectorAll(".js-search-form-submit").forEach(function(el) {
+        el.addEventListener("click", function(e) {
+          e.preventDefault();
+          e.currentTarget.parentElement.submit();
+        })
+      });
+    })();
+  </script>
+  <script async="" src="/static/frontend/reader/lightbox.3094220f25d0.js">
+  </script>
+  <script async="" src="/static/frontend/reader/platforms-ui.1034614b3744.js">
+  </script>
+  <script async="" src="/static/frontend/previews/popover.8cbb2f0c4a0b.js">
+  </script>
+  <exit-prompt>
+   <template>
+    <div class="card bg-secondary">
+     <div class="card-header h3 text-center bg-light">
+      Free Bonus:
+      <strong>
+       Python Cheat Sheet
+      </strong>
+      <button aria-label="Close" class="float-right border-0 bg-transparent text-muted" data-dismiss="modal" type="button">
+       <span aria-hidden="true">
+        ×
+       </span>
+      </button>
+     </div>
+     <div class="card-body">
+      <p class="mb-0">
+       Get a
+       <strong>
+        Python Cheat Sheet (PDF)
+       </strong>
+       and learn the basics of Python, like working with data types, dictionaries, lists, and Python functions:
+      </p>
+      <img alt="Python Cheat Sheet" class="img-fluid mb-3 w-100 px-3" height="257" src="/static/cheatsheet-stacked-sm.c9ac81c58bcc.png" width="400"/>
+      <div class="row">
+       <form action="/optins/process/" class="col-12" method="post">
+        <input name="slug" type="hidden" value="static-cheat-sheet"/>
+        <input name="source_path" type="hidden" value="/python-gil/"/>
+        <div class="form-group">
+         <input autocomplete="email" autofocus="" class="form-control form-control-lg" name="email" placeholder="Email Address" required="" type="email"/>
+        </div>
+        <button class="btn btn-primary btn-lg btn-block" name="submit" type="submit">
+         Send My Python Cheat Sheet »
+        </button>
+       </form>
+      </div>
+     </div>
+    </div>
+   </template>
+  </exit-prompt>
+  <script defer="" src="/static/frontend/components/exit-prompt.9d7b9f578015.js">
+  </script>
+  <script defer="" src="/static/frontend/components/code-block.2dd2590bb532.js">
+  </script>
+  <script defer="" src="/static/frontend/blog/components/table-of-contents.9414bffea973.js">
+  </script>
+  <script defer="" src="/static/frontend/blog/components/completion-status.b223032bc434.js">
+  </script>
+  <script defer="" src="/static/frontend/components/share-button.ea2a8794f3b4.js">
+  </script>
+  <script>
+   window.rp_prop_id = '58946116052';
+  </script>
+  <script async="" src="https://srv.realpython.net/tag.js">
+  </script>
+  <script id="js-context" type="application/json">
+   {"is_completed": false, "is_bookmarked": false, "api_article_bookmark_url": "/api/v1/articles/python-gil/bookmark/", "api_article_completion_status_url": "/api/v1/articles/python-gil/completion_status/"}
+  </script>
+  <script async="" id="dsq-count-scr" src="https://realpython.disqus.com/count.js">
+  </script>
+  <script>
+   var disqus_config = function () {
+        this.page.url = 'https://realpython.com/python-gil/';
+        this.page.identifier = 'https://realpython.com/python-gil/';
+        this.callbacks.onReady = [function() {
+          if (window.onDisqusReady) {
+            window.onDisqusReady();
+          }
+        }];
+      };
+      var disqus_script_url = 'https://realpython.disqus.com/embed.js';
+  </script>
+  <script defer="" src="/static/frontend/reader/lazy-disqus.bf201295ce0f.js">
+  </script>
+  <script>
+   window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(function(OneSignal) {
+      OneSignal.init({
+        appId: "c0081e20-a523-42bb-b0ac-04c5a9e8bf40",
+        safari_web_id: "web.onesignal.auto.337e82fd-eeda-48f8-8fe5-d2f6dec774c2",
+        notifyButton: {
+          enable: true,
+          position: "bottom-left",
+          showCredit: false,
+          text: {
+            "tip.state.unsubscribed": "Receive a notification when we post a new tutorial",
+            "tip.state.subscribed": "You're subscribed to new tutorial notifications",
+            'tip.state.blocked': "You've blocked notifications",
+            'message.prenotify': 'Click to subscribe to notifications',
+            "message.action.subscribed": "Great, we'll let you know when the next tutorial comes out!",
+            'message.action.resubscribed': "You're subscribed to notifications",
+            'message.action.unsubscribed': "You won't receive notifications again",
+            'dialog.main.title': 'Manage Site Notifications',
+            'dialog.main.button.subscribe': 'SUBSCRIBE',
+            'dialog.main.button.unsubscribe': 'UNSUBSCRIBE',
+            'dialog.blocked.title': 'Unblock Notifications',
+            'dialog.blocked.message': "Follow these instructions to allow notifications:"
+          },
+          
+        },
+      });
+    });
+    setTimeout(()=>{const n=document.createElement("script");n.src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";n.async=!0;document.head.appendChild(n)}, 3000);
+  </script>
+  <script type="application/ld+json">
+   {
+  "@context": "http://schema.org",
+  "@type": "Article",
+  "headline": "What Is the Python Global Interpreter Lock (GIL)?",
+  "image": {
+    "@type": "ImageObject",
+    "url": "https://files.realpython.com/media/What-is-the-Python-Global-Interpreter-Lock-GIL_Watermarked.0695d8c16efe.jpg",
+    "width": 1920,
+    "height": 1080
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://realpython.com/python-gil/",
+    "lastReviewed": "2024-08-01",
+    "author": {
+      "@type": "Person",
+      "name": "Abhinav Ajitsaria",
+      "image": "https://realpython.com/cdn-cgi/image/width=720,height=720,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/abhinav2019c1.3a84afd775e6.jpg",
+      "url": "https://realpython.com/team/aajitsaria/",
+      "affiliation": {
+        "@type": "Organization",
+        "@id": "https://realpython.com/#organization",
+        "name": "Real Python",
+        "url": "https://realpython.com",
+        "logo": "https://realpython.com/static/real-python-logo-square-512.157ae6bf64ed.png"
+      }
+    },
+    "reviewedBy": [
+      {
+        "@type": "Person",
+        "name": "Aldren Santos",
+        "image": "https://realpython.com/cdn-cgi/image/width=500,height=500,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/Aldren_Santos_Real_Python.6b0861d8b841.png",
+        "url": "https://realpython.com/team/asantos/",
+        "affiliation": {
+          "@type": "Organization",
+          "@id": "https://realpython.com/#organization",
+          "name": "Real Python",
+          "url": "https://realpython.com",
+          "logo": "https://realpython.com/static/real-python-logo-square-512.157ae6bf64ed.png"
+        }
+      },
+      {
+        "@type": "Person",
+        "name": "Dan Bader",
+        "image": "https://realpython.com/cdn-cgi/image/width=1000,height=1000,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/daniel-square.d58bf4388750.jpg",
+        "url": "https://realpython.com/team/dbader/",
+        "affiliation": {
+          "@type": "Organization",
+          "@id": "https://realpython.com/#organization",
+          "name": "Real Python",
+          "url": "https://realpython.com",
+          "logo": "https://realpython.com/static/real-python-logo-square-512.157ae6bf64ed.png"
+        }
+      }
+    ]
+  },
+  "datePublished": "2018-03-06T14:00:00+00:00",
+  "dateModified": "2024-08-01T16:43:45.062720+00:00",
+  "publisher": {
+    "@type": "Organization",
+    "@id": "https://realpython.com/#organization",
+    "name": "Real Python",
+    "url": "https://realpython.com",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://realpython.com/static/real-python-logo-square-512.157ae6bf64ed.png",
+      "width": 512,
+      "height": 512
+    },
+    "description": "Real Python is a leading provider of online Python education and one of the largest language-specific online communities for software developers. It publishes high-quality learning resources, such as tutorials, books, and courses to an audience of millions of developers, data scientists, and machine learning engineers each month.",
+    "slogan": "Become a Python Expert",
+    "email": "info@realpython.com",
+    "sameAs": [
+      "https://github.com/realpython",
+      "https://www.youtube.com/realpython",
+      "https://twitter.com/realpython",
+      "https://x.com/realpython",
+      "https://www.linkedin.com/company/realpython-com/",
+      "https://www.facebook.com/learnrealpython",
+      "https://www.instagram.com/realpython",
+      "https://www.tiktok.com/@realpython.com"
+    ]
+  },
+  "author": {
+    "@type": "Person",
+    "name": "Abhinav Ajitsaria",
+    "image": "https://realpython.com/cdn-cgi/image/width=720,height=720,fit=crop,gravity=auto,format=auto/https://files.realpython.com/media/abhinav2019c1.3a84afd775e6.jpg",
+    "url": "https://realpython.com/team/aajitsaria/",
+    "affiliation": {
+      "@type": "Organization",
+      "@id": "https://realpython.com/#organization",
+      "name": "Real Python",
+      "url": "https://realpython.com",
+      "logo": "https://realpython.com/static/real-python-logo-square-512.157ae6bf64ed.png"
+    }
+  },
+  "description": "Python's Global Interpreter Lock or GIL, in simple words, is a mutex (or a lock) that allows only one thread to hold the control of the Python interpreter at any one time. In this article you'll learn how the GIL affects the performance of your Python programs."
+}
+  </script>
+  <script async="" src="/static/frontend/optins/optins.f7528e046046.js">
+  </script>
+  <script async="" src="/static/frontend/search/autocomplete.4d5caf0fc289.js">
+  </script>
+  <script>
+   !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  setTimeout(function(){s.parentNode.insertBefore(t,s)}, 3000);}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '2220911568135371');
+  fbq('track', 'PageView');
+  </script>
+  <noscript>
+   <img height="1" src="https://www.facebook.com/tr?id=2220911568135371&amp;ev=PageView&amp;noscript=1" style="display:none" width="1"/>
+  </noscript>
+  <div data-client_id="912944204353-gv43om9f7qmj4eprm0esc45r12etunvp.apps.googleusercontent.com" data-itp_support="false" data-login_uri="https://realpython.com/account/google/login/token/?next=/python-gil/" id="g_id_onload">
+  </div>
+  <script async="" src="//accounts.google.com/gsi/client">
+  </script>
+  <script>
+   (function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9e71316dbe0889e1',t:'MTc3NTMxNDkzNQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();
+  </script>
+ </body>
+</html>
